@@ -17,7 +17,7 @@ if ((CMAKE_CXX_COMPILER_ID MATCHES "Clang") OR (CMAKE_CXX_COMPILER_ID STREQUAL "
     # -Wextra pushes that a bit further
     # -pedantic sets the compiler to use strict ISO C++
     # -Werror treats all warnings as errors so you have to fix them
-    add_compile_options(-Wall -Wextra -pedantic) # -Werror)
+    add_compile_options(-Wall -Wextra) # -pedantic) # -Werror)
 
     # Sanitizer options
     # The following will turn on Debugging (-g flag) and the Address Sanitizer
@@ -49,8 +49,11 @@ endif()
 # CUDA
 # - check if CUDA is available
 # ----------------------------------------------------------
-include(CheckLanguage)
-check_language(CUDA)
+INCLUDE(CheckLanguage)
+
+FIND_PACKAGE(CUDAToolkit REQUIRED)
+
+CHECK_LANGUAGE(CUDA)
 
 if (CMAKE_CUDA_COMPILER)
 
@@ -86,8 +89,6 @@ IF(CMAKE_CUDA_COMPILER)
   #INCLUDE_DIRECTORIES(${CUDA_SDK_ROOT_DIR}/samples/common/inc)
   LINK_DIRECTORIES(${CUDA_SDK_ROOT_DIR}/lib64)
 ENDIF()
-
-find_package(CUDAToolkit REQUIRED)
 
 add_executable(CUDARandomGen
   CUDARandomKernel.cu CUDARandomKernel.h
