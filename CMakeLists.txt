@@ -89,13 +89,29 @@ ENDIF()
 
 find_package(CUDAToolkit REQUIRED)
 
-add_executable(test_CUDARandomGen
+add_executable(CUDARandomGen
   CUDARandomKernel.cu CUDARandomKernel.h
-  test_CUDARandomGen.cpp
+  CUDARandomGen.cpp
 )
 
 # set_target_properties(test_CUDARandomGen PROPERTIES
 #                             CUDA_SEPARABLE_COMPILATION ON)
 
-target_link_libraries(test_CUDARandomGen PRIVATE ${CUDA_LIBRARIES})
-target_link_libraries(test_CUDARandomGen PRIVATE ${CUDA_curand_LIBRARY})
+target_link_libraries(CUDARandomGen PRIVATE ${CUDA_LIBRARIES})
+target_link_libraries(CUDARandomGen PRIVATE ${CUDA_curand_LIBRARY})
+
+
+Include(FetchContent)
+FetchContent_Declare(
+        Catch2
+        GIT_REPOSITORY https://github.com/catchorg/Catch2.git
+        GIT_TAG        v3.0.1 # or a later release
+)
+FetchContent_MakeAvailable(Catch2)
+
+add_executable(test_CUDARandomGen
+  CUDARandomKernel.cu CUDARandomKernel.h
+  test_CUDARandomGen.cpp)
+target_link_libraries(test_CUDARandomGen ${CUDA_LIBRARIES})
+target_link_libraries(test_CUDARandomGen ${CUDA_curand_LIBRARY})
+target_link_libraries(test_CUDARandomGen Catch2::Catch2WithMain)
