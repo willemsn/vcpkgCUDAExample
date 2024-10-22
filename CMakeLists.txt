@@ -22,11 +22,11 @@ if ((CMAKE_CXX_COMPILER_ID MATCHES "Clang") OR (CMAKE_CXX_COMPILER_ID STREQUAL "
     # Sanitizer options
     # The following will turn on Debugging (-g flag) and the Address Sanitizer
     # which is turned on with the -fsanitize=address option to the compiler.
-    add_compile_options(-g -fsanitize=address,undefined)
+#    add_compile_options(-g -fsanitize=address,undefined)
 
     # When we turn on the sanitizer, you also need to instruct the linker that it
     # will be used which happens with the following link option command.
-    add_link_options(-g -fsanitize=address,undefined)
+#    add_link_options(-g -fsanitize=address,undefined)
     
 elseif (CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
     # using Intel C++
@@ -52,43 +52,39 @@ endif()
 INCLUDE(CheckLanguage)
 
 FIND_PACKAGE(CUDAToolkit REQUIRED)
-
 CHECK_LANGUAGE(CUDA)
 
 if (CMAKE_CUDA_COMPILER)
 
-   MESSAGE(STATUS "CUDA is available; CUDA_COMPILER=${CMAKE_CUDA_COMPILER}, Version=${CMAKE_CUDA_COMPILER_VERSION}")
-   ENABLE_LANGUAGE( CUDA )
+  MESSAGE(STATUS "CUDA Toolkit Root: ${CUDAToolkit_ROOT}")
+  MESSAGE(STATUS "CUDA Toolkit Include Directories: ${CUDAToolkit_INCLUDE_DIRS}")
+  MESSAGE(STATUS "CUDA Toolkit Libraries: ${CUDAToolkit_LIBRARIES}")
+  MESSAGE(STATUS "CUDA Toolkit Version: ${CUDAToolkit_VERSION}")
+  MESSAGE(STATUS "CUDA Toolkit Binary Directory: ${CUDAToolkit_BIN_DIR}")
 
-   if(NOT DEFINED CMAKE_CUDA_STANDARD)
-      set(CMAKE_CUDA_STANDARD 17)
-      set(CMAKE_CUDA_STANDARD_REQUIRED ON)
-   endif()
-   
-else()
-   MESSAGE(STATUS "CUDA is not available.")
-endif()
-
-# SET(CUDA_SEPARABLE_COMPILATION ON)
-# set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS} "-arch=sm_52;-rdc=true;" )
-
-#use fast math option is required for OptiX
-# set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS} "-arch=sm_61;-dlink;-rdc=true;--use_fast_math;--keep-device-functions")
-
-# Attempt to find CUDA
-IF(CMAKE_CUDA_COMPILER)
+  MESSAGE(STATUS "CUDA is available; CUDA_COMPILER=${CMAKE_CUDA_COMPILER}, Version=${CMAKE_CUDA_COMPILER_VERSION}")
   MESSAGE(STATUS "CUDA Libraries: ${CUDA_LIBRARIES}")
-  SET(HAS_CUDA_SUPPORT ON CACHE BOOL "Determines if CUDA/GPU functionality is compiled into the code base" )
+  ENABLE_LANGUAGE( CUDA )
 
   if(NOT DEFINED CMAKE_CUDA_STANDARD)
     set(CMAKE_CUDA_STANDARD 17)
     set(CMAKE_CUDA_STANDARD_REQUIRED ON)
   endif()
-  
-  INCLUDE_DIRECTORIES(${CUDA_INCLUDE_DIRS})
+   
+  #INCLUDE_DIRECTORIES(${CUDA_INCLUDE_DIRS})
   #INCLUDE_DIRECTORIES(${CUDA_SDK_ROOT_DIR}/samples/common/inc)
-  LINK_DIRECTORIES(${CUDA_SDK_ROOT_DIR}/lib64)
-ENDIF()
+  #LINK_DIRECTORIES(${CUDA_SDK_ROOT_DIR}/lib64)
+
+  SET(CUDA_SEPARABLE_COMPILATION ON)
+
+else()
+   MESSAGE(STATUS "CUDA is not available.")
+endif()
+
+# set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS} "-arch=sm_52;-rdc=true;" )
+#use fast math option is required for OptiX
+# set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS} "-arch=sm_61;-dlink;-rdc=true;--use_fast_math;--keep-device-functions")
+# SET(HAS_CUDA_SUPPORT ON CACHE BOOL "Determines if CUDA/GPU functionality is compiled into the code base" )
 
 add_executable(CUDARandomGen
   CUDARandomKernel.cu CUDARandomKernel.h
@@ -97,6 +93,8 @@ add_executable(CUDARandomGen
 
 # set_target_properties(test_CUDARandomGen PROPERTIES
 #                             CUDA_SEPARABLE_COMPILATION ON)
+
+target_include_directories(CUDARandomGen PRIVATE ${CUDAToolkit_INCLUDE_DIRS})
 
 target_link_libraries(CUDARandomGen PRIVATE ${CUDA_LIBRARIES})
 target_link_libraries(CUDARandomGen PRIVATE ${CUDA_curand_LIBRARY})
@@ -113,6 +111,7 @@ FetchContent_MakeAvailable(Catch2)
 add_executable(test_CUDARandomGen
   CUDARandomKernel.cu CUDARandomKernel.h
   test_CUDARandomGen.cpp)
+target_include_directories(test_CUDARandomGen PRIVATE ${CUDAToolkit_INCLUDE_DIRS})
 target_link_libraries(test_CUDARandomGen ${CUDA_LIBRARIES})
 target_link_libraries(test_CUDARandomGen ${CUDA_curand_LIBRARY})
 target_link_libraries(test_CUDARandomGen Catch2::Catch2WithMain)
