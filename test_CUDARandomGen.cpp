@@ -1,3 +1,8 @@
+#include <random>
+#include <bitset>
+#include <string>
+#include <cstring>
+#include <iostream>
 #include <cmath>
 
 #include <catch2/catch_test_macros.hpp>
@@ -38,7 +43,7 @@ TEST_CASE("CUDA Random Gen - Avg Uniform Value")
     
     // Set the seed --- not sure how we'll do this yet in general
     // CURAND_CALL(
-    curandSetPseudoRandomGeneratorSeed(gen, 1234ULL);
+    curandSetPseudoRandomGeneratorSeed(gen, std::random_device{}());
 
     // start with 15k "particles"
     int numParticles = 15000;
@@ -99,6 +104,7 @@ TEST_CASE("CUDA Random Gen - Avg Uniform Value")
     curandDestroyGenerator(gen);
 }
 
+
 TEST_CASE("CUDA Random Gen - Frequency")
 {
     curandGenerator_t gen;
@@ -110,7 +116,7 @@ TEST_CASE("CUDA Random Gen - Frequency")
     
     // Set the seed --- not sure how we'll do this yet in general
     // CURAND_CALL(
-    curandSetPseudoRandomGeneratorSeed(gen, 1234ULL);
+    curandSetPseudoRandomGeneratorSeed(gen, std::random_device{}());
 
     // start with 15k "particles"
     int numParticles = 15000;
@@ -158,6 +164,89 @@ TEST_CASE("CUDA Random Gen - Frequency")
         for (int i=0; i < freq.size(); ++i) {
             REQUIRE_THAT( freq[i], Catch::Matchers::WithinAbs(equalBinSize, threshold) );
         }
+
+        numParticles *= 2;
+
+        // CUDA_CALL();
+        cudaFree(devPRNVals);
+        
+        // CUDA_CALL();
+        cudaFree(devResults);
+        
+        free(hostResults);
+    }
+
+    // Cleanup
+    curandDestroyGenerator(gen);
+}
+
+
+TEST_CASE("CUDA Random Gen - Frequency of Zeros and Ones")
+{
+    curandGenerator_t gen;
+    float *devPRNVals, *hostData, *devResults, *hostResults;
+    
+    // Create pseudo-random number generator
+    // CURAND_CALL(
+    curandCreateGenerator(&gen, CURAND_RNG_PSEUDO_DEFAULT);
+    
+    // Set the seed --- not sure how we'll do this yet in general
+    // CURAND_CALL(
+    curandSetPseudoRandomGeneratorSeed(gen, std::random_device{}());
+
+    // start with 15k "particles"
+    int numParticles = 15000;
+    
+    // repeat with ever increasing numbers of particles
+    for (int r=0; r<10; r++) {
+
+        // Allocate numParticle * 3 floats on host
+        int n = numParticles * 3;
+
+        hostResults = (float *)calloc(n, sizeof(float));
+    
+        // Allocate n floats on device to hold random numbers
+	// CUDA_CALL();
+	cudaMalloc((void **)&devPRNVals, n*sizeof(float));
+	// CUDA_CALL();
+	cudaMalloc((void **)&devResults, n*sizeof(float));
+
+        // Generate n random floats on device
+        // CURAND_CALL();
+        // generates n vals between [0, 1]
+	curandGenerateUniform(gen, devPRNVals, n);
+
+        /* Copy device memory to host */
+        // CUDA_CALL(cudaMemcpy(hostData, devPRNVals, n * sizeof(float),
+        // cudaMemcpyDeviceToHost));
+        // CUDA_CALL();
+        cudaMemcpy(hostResults, devPRNVals, n * sizeof(float), cudaMemcpyDeviceToHost);
+    
+        long onesCount = 0;
+        
+        for(int i=0; i < n; i++) {
+            float val = hostResults[i];
+
+            uint32_t bits;
+            std::memcpy(&bits, &val, sizeof(bits));
+
+            std::bitset<32> bitset(bits);
+            std::string bitString = bitset.to_string();
+
+            for (int c=0; c<bitString.length(); ++c) {
+                if (bitString.at(c) == '1')
+                    onesCount++;
+            }
+        }
+
+        long numBits = n*32;
+        long zerosCount = numBits - onesCount;
+
+        double ratio = onesCount / (double)numBits;
+        
+        std::cout << "Ratio: " << ratio << std::endl;
+        
+        CHECK( (0.45 < ratio && ratio < 0.55) );
 
         numParticles *= 2;
 
