@@ -71,33 +71,37 @@ if (CMAKE_CUDA_COMPILER)
     set(CMAKE_CUDA_STANDARD_REQUIRED ON)
   endif()
    
-  #INCLUDE_DIRECTORIES(${CUDA_INCLUDE_DIRS})
-  #INCLUDE_DIRECTORIES(${CUDA_SDK_ROOT_DIR}/samples/common/inc)
-  #LINK_DIRECTORIES(${CUDA_SDK_ROOT_DIR}/lib64)
-
-  SET(CUDA_SEPARABLE_COMPILATION ON)
-
 else()
    MESSAGE(STATUS "CUDA is not available.")
 endif()
-
-# set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS} "-arch=sm_52;-rdc=true;" )
-#use fast math option is required for OptiX
-# set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS} "-arch=sm_61;-dlink;-rdc=true;--use_fast_math;--keep-device-functions")
-# SET(HAS_CUDA_SUPPORT ON CACHE BOOL "Determines if CUDA/GPU functionality is compiled into the code base" )
 
 add_executable(CUDARandomGen
   CUDARandomKernel.cu CUDARandomKernel.h
   CUDARandomGen.cpp
 )
 
-# set_target_properties(test_CUDARandomGen PROPERTIES
-#                             CUDA_SEPARABLE_COMPILATION ON)
-
 target_include_directories(CUDARandomGen PRIVATE ${CUDAToolkit_INCLUDE_DIRS})
 
 target_link_libraries(CUDARandomGen PRIVATE ${CUDA_LIBRARIES})
 target_link_libraries(CUDARandomGen PRIVATE ${CUDA_curand_LIBRARY})
+
+
+
+add_library(CUDALib STATIC
+  CUDA_DeviceFunctions.cu CUDA_DeviceFunctions.h
+)
+target_include_directories(CUDALib PRIVATE ${CUDAToolkit_INCLUDE_DIRS})
+set_target_properties(CUDALib PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
+# set_target_properties(CUDALib PROPERTIES CMAKE_CUDA_FLAGS ${CMAKE_CUDA_FLAGS} "-rdc=true" )  # shouldn't be needed with sep comp above
+
+add_executable(CUDALibraryTest
+  CUDA_LibraryTest.cu CUDA_DeviceFunctions.h
+)
+target_include_directories(CUDALibraryTest PRIVATE ${CUDAToolkit_INCLUDE_DIRS})
+set_target_properties(CUDALibraryTest PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
+target_link_libraries(CUDALibraryTest PRIVATE CUDALib)
+target_link_libraries(CUDALibraryTest PRIVATE ${CUDA_LIBRARIES})
+
 
 
 Include(FetchContent)
