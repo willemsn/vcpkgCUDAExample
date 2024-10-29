@@ -184,11 +184,11 @@ TEST_CASE("CUDA Random Gen - Frequency")
 TEST_CASE("CUDA Random Gen - Frequency of Zeros and Ones")
 {
     curandGenerator_t gen;
-    float *devPRNVals, *hostData, *devResults, *hostResults;
+    unsigned int *devPRNVals, *hostData, *devResults, *hostResults;
     
     // Create pseudo-random number generator
     // CURAND_CALL(
-    curandCreateGenerator(&gen, CURAND_RNG_PSEUDO_DEFAULT);
+    curandCreateGenerator(&gen, CURAND_RNG_PSEUDO_MTGP32);
     
     // Set the seed --- not sure how we'll do this yet in general
     // CURAND_CALL(
@@ -203,37 +203,39 @@ TEST_CASE("CUDA Random Gen - Frequency of Zeros and Ones")
         // Allocate numParticle * 3 floats on host
         int n = numParticles * 3;
 
-        hostResults = (float *)calloc(n, sizeof(float));
+        hostResults = (unsigned int *)calloc(n, sizeof(unsigned int));
     
         // Allocate n floats on device to hold random numbers
 	// CUDA_CALL();
-	cudaMalloc((void **)&devPRNVals, n*sizeof(float));
+	cudaMalloc((void **)&devPRNVals, n*sizeof(unsigned int));
 	// CUDA_CALL();
-	cudaMalloc((void **)&devResults, n*sizeof(float));
+	cudaMalloc((void **)&devResults, n*sizeof(unsigned int));
 
         // Generate n random floats on device
         // CURAND_CALL();
         // generates n vals between [0, 1]
-	curandGenerateUniform(gen, devPRNVals, n);
+	curandGenerate(gen, devPRNVals, n);
 
         /* Copy device memory to host */
         // CUDA_CALL(cudaMemcpy(hostData, devPRNVals, n * sizeof(float),
         // cudaMemcpyDeviceToHost));
         // CUDA_CALL();
-        cudaMemcpy(hostResults, devPRNVals, n * sizeof(float), cudaMemcpyDeviceToHost);
+        cudaMemcpy(hostResults, devPRNVals, n * sizeof(unsigned int), cudaMemcpyDeviceToHost);
     
         long onesCount = 0;
         
+        constexpr int szFloatBits = sizeof(unsigned int) * 8;
+            
         for(int i=0; i < n; i++) {
-            float val = hostResults[i];
+            unsigned int val = hostResults[i];
 
             uint32_t bits;
             std::memcpy(&bits, &val, sizeof(bits));
 
-            std::bitset<32> bitset(bits);
+            std::bitset<szFloatBits> bitset(bits);
             std::string bitString = bitset.to_string();
 
-            for (int c=0; c<bitString.length(); ++c) {
+            for (int c=0; c<szFloatBits; ++c) {
                 if (bitString.at(c) == '1')
                     onesCount++;
             }
@@ -244,7 +246,7 @@ TEST_CASE("CUDA Random Gen - Frequency of Zeros and Ones")
 
         double ratio = onesCount / (double)numBits;
         
-        std::cout << "Ratio: " << ratio << std::endl;
+        std::cout << "Ratio: " << ratio << ", ones=" << onesCount << ", zeros=" << zerosCount << std::endl;
         
         CHECK( (0.45 < ratio && ratio < 0.55) );
 
