@@ -75,6 +75,27 @@ else()
    MESSAGE(STATUS "CUDA is not available.")
 endif()
 
+# ----------------------------------------------------------
+# NetCDF
+# ----------------------------------------------------------
+SET(NETCDF_CXX "YES")
+FIND_PACKAGE(netCDFCxx CONFIG REQUIRED)
+IF(netCDFCxx_FOUND)
+  MESSAGE(STATUS "Found NetCDF CXX: ${NETCDF_C_INCLUDE_DIR} ${NETCDF_C_LIBRARY}")
+  INCLUDE_DIRECTORIES(${NETCDF_C_INCLUDE_DIR})
+ENDIF(netCDFCxx_FOUND)
+
+#  target_link_libraries(main PRIVATE netCDF::netcdf netCDF::netcdf-cxx4)
+
+FIND_PACKAGE(netCDF CONFIG REQUIRED)
+IF(netCDF_FOUND)
+  MESSAGE(STATUS "Found NetCDF - Version: ${NetCDFVersion}, ${netCDF_INCLUDE_DIR}, ${netCDF_LIB_DIR}, ${netCDF_LIBRARIES}, ${netCDF_LDFLAGS}, ${netCDF_C_CPP_FLAGS}")
+#  ADD_LINK_OPTIONS("${netCDF_LDFLAGS}")
+  INCLUDE_DIRECTORIES(${netCDF_INCLUDE_DIR})
+  LINK_DIRECTORIES(${netCDF_LIB_DIR})
+ENDIF(netCDF_FOUND)
+
+
 add_executable(CUDARandomGen
   CUDARandomKernel.cu CUDARandomKernel.h
   CUDARandomGen.cpp
